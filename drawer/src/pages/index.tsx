@@ -35,7 +35,6 @@ export default function HomePage() {
 				<Drawer
 					open={open}
 					onClose={() => setOpen(false)}
-					mask={false}
 					title='二级抽屉'></Drawer>
 			</WithDrawer>
 		</ConfigProvider>

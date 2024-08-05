@@ -2,7 +2,6 @@ import styles from './styles.less';
 import { Drawer, DrawerProps } from 'antd';
 import React, {
 	useCallback,
-	useEffect,
 	useLayoutEffect,
 	useMemo,
 	useRef,
@@ -39,8 +38,6 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 	contentStyle,
 	...props
 }) => {
-	const DrawerContainerRef = useRef<HTMLDivElement>(null);
-
 	const [open, setOpen] = useState(false);
 	const showDrawer = () => !open && setOpen(true);
 	const closeDrawer = () => open && setOpen(false);
@@ -54,6 +51,8 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 		[props.onClose, closeDrawer]
 	);
 
+	// 处理props.children中嵌套了Drawer组件的情况，导致content区域的宽度错误问题
+	const DrawerContainerRef = useRef<HTMLDivElement>(null);
 	const [translateX, setTranslateX] = useState(0);
 	useLayoutEffect(() => {
 		if (!open) return setTranslateX(0);
@@ -77,9 +76,9 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 		} catch (error) {}
 	}, [props.children, open]);
 
+	// 动态设置content区域的宽度
 	const DrawerWidth = useMemo(() => {
 		if (!open) return '0px';
-
 		const type = typeof width;
 		if (type === 'undefined') return '400px';
 		if (type === 'number') return width + 'px';
@@ -111,8 +110,7 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 				// 不可传递的参数
 				mask={false}
 				open={open}
-				// todo ts warring
-				getContainer={() => DrawerContainerRef.current}
+				getContainer={() => DrawerContainerRef.current as HTMLDivElement}
 			/>
 		</section>
 	);
