@@ -1,6 +1,13 @@
 import styles from './styles.less';
 import { Drawer, DrawerProps } from 'antd';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 
 export interface WithDrawerContentProps
 	extends Pick<DrawerProps, 'width' | 'open' | 'onClose'> {
@@ -32,6 +39,8 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 	contentStyle,
 	...props
 }) => {
+	const DrawerContainerRef = useRef<HTMLDivElement>(null);
+
 	const [open, setOpen] = useState(false);
 	const showDrawer = () => !open && setOpen(true);
 	const closeDrawer = () => open && setOpen(false);
@@ -45,7 +54,29 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 		[props.onClose, closeDrawer]
 	);
 
-	const DrawerContainer = useRef<HTMLDivElement>(null);
+	const [translateX, setTranslateX] = useState(0);
+	useLayoutEffect(() => {
+		if (!open) return setTranslateX(0);
+
+		try {
+			requestAnimationFrame(() => {
+				const drawer = DrawerContainerRef.current;
+				const element = drawer?.querySelector(
+					'.ant-drawer .ant-drawer-content-wrapper'
+				);
+				if (!element) return;
+
+				const style = element.getAttribute('style');
+				const match = style?.match(/translateX\(([-\d.]+)px\)/);
+
+				if (match) {
+					const translateXValue = parseFloat(match[1]);
+					setTranslateX(translateXValue);
+				} else setTranslateX(0);
+			});
+		} catch (error) {}
+	}, [props.children, open]);
+
 	const DrawerWidth = useMemo(() => {
 		if (!open) return '0px';
 
@@ -54,13 +85,17 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 		if (type === 'number') return width + 'px';
 		return width;
 	}, [width, open]);
+
 	return (
 		<section
 			className={styles.main}
-			ref={DrawerContainer}>
+			ref={DrawerContainerRef}>
 			<div
 				className={[styles.content, contentClassName].filter(Boolean).join(' ')}
-				style={{ width: `calc(100% - ${DrawerWidth})`, ...contentStyle }}>
+				style={{
+					width: `calc(100% - ${DrawerWidth} + ${translateX}px)`,
+					...contentStyle,
+				}}>
 				{content({
 					width: DrawerWidth,
 					open,
@@ -77,7 +112,7 @@ const WithDrawer: React.FC<WithDrawerProps> = ({
 				mask={false}
 				open={open}
 				// todo ts warring
-				getContainer={() => DrawerContainer?.current}
+				getContainer={() => DrawerContainerRef.current}
 			/>
 		</section>
 	);
